@@ -1,0 +1,109 @@
+import numpy as np
+import os
+import re
+import json
+import random
+import argparse
+from collections import Counter
+from colormath.color_objects import sRGBColor, LabColor
+from colormath.color_diff import delta_e_cie2000
+from colormath.color_conversions import convert_color
+
+POKEMON_SPRITES_DIR = "/opt/pokemon-colorscripts/colorscripts/small/regular"
+TOP_N_POKEMONS = 3
+POKEMON_SPRITE_FILE = os.path.expanduser("~/.cache/wal/pokemon_sprite")
+POKEMON_COLORS_CACHE = os.path.expanduser("~/.cache/wal/pokemon_colors_cache.json")
+
+def load_pywal_color_5():
+    with open(f"{os.getenv('HOME')}/.cache/wal/colors.json", 'r') as f:
+        colors_data = json.load(f)
+        return colors_data['colors'].get('color5')
+
+
+def extract_colors_from_sprite(sprite_path):
+    with open(sprite_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+        color_pattern = re.compile(r'\x1b\[38;2;(\d+);(\d+);(\d+)m')
+        matches = color_pattern.findall(content)
+
+    color_counts = Counter(matches)
+    most_common_color = color_counts.most_common(1)[0][0] if color_counts else None
+
+    if most_common_color:
+        r, g, b = most_common_color
+        try:
+            color = f"#{int(r):02x}{int(g):02x}{int(b):02x}"
+            return color
+        except ValueError:
+            return None
+    return None
+
+
+def compare_colors(color1, color2):
+    if not (color1.startswith('#') and color2.startswith('#')):
+        raise ValueError(f"Invalid color format: {color1} or {color2}")
+    color1_lab = convert_color(sRGBColor.new_from_rgb_hex(color1), LabColor)
+    color2_lab = convert_color(sRGBColor.new_from_rgb_hex(color2), LabColor)
+    delta_e = delta_e_cie2000(color1_lab, color2_lab)
+
+    return delta_e.item() if hasattr(delta_e, 'item') else delta_e
+
+# Uso esta función para meter los colores en cache e intentar agilizar el proceso
+def preprocess_pokemon_colors():
+    pokemon_colors_cache = {}
+    for pokemon_file in os.listdir(POKEMON_SPRITES_DIR):
+        sprite_path = os.path.join(POKEMON_SPRITES_DIR, pokemon_file)
+        most_common_color = extract_colors_from_sprite(sprite_path)
+        if most_common_color:
+            pokemon_colors_cache[pokemon_file] = most_common_color
+
+    with open(POKEMON_COLORS_CACHE, 'w') as f:
+        json.dump(pokemon_colors_cache, f)
+
+def find_best_pokemons(pywal_color_5):
+    with open(POKEMON_COLORS_CACHE, 'r') as f:
+        pokemon_colors_cache = json.load(f)
+
+    best_pokemons = sorted(
+        pokemon_colors_cache.items(),
+        key=lambda item: compare_colors(pywal_color_5, item[1])
+    )[:TOP_N_POKEMONS]
+
+    return [pokemon[0] for pokemon in best_pokemons]
+
+def save_pokemon_sprite(pokemon_file):
+    sprite_path = os.path.join(POKEMON_SPRITES_DIR, pokemon_file)
+    with open(sprite_path, 'r', encoding='utf-8') as f:
+        pokemon_sprite = f.read()
+    with open(POKEMON_SPRITE_FILE, 'w', encoding = 'utf-8') as f:
+        f.write(pokemon_sprite)
+    print(f"Pokemon sprite saved to {POKEMON_SPRITE_FILE}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Select a Pokémon sprite based on Pywal colors.")
+    parser.add_argument('--save-sprite', action='store_true', help='Save the selected Pokémon sprite to a file.')
+
+    args = parser.parse_args()
+
+    pywal_color_5 = load_pywal_color_5()
+
+    if not os.path.exists(POKEMON_COLORS_CACHE):
+        preprocess_pokemon_colors()
+
+    best_pokemons = find_best_pokemons(pywal_color_5)
+    
+    if best_pokemons:
+        chosen_pokemon = random.choice(best_pokemons)
+        print(f"Selected Pokémon: {chosen_pokemon}")
+        
+        if args.save_sprite:
+            save_pokemon_sprite(chosen_pokemon)
+
+        os.system(f"cat {os.path.join(POKEMON_SPRITES_DIR, chosen_pokemon)}")
+    else:
+        print("No Pokémon found.")
+
+if __name__ == "__main__":
+    main()
+

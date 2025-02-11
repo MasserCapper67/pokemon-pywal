@@ -1,0 +1,8 @@
+setup.py
+pokemon_pywal/__init__.py
+pokemon_pywal.egg-info/PKG-INFO
+pokemon_pywal.egg-info/SOURCES.txt
+pokemon_pywal.egg-info/dependency_links.txt
+pokemon_pywal.egg-info/entry_points.txt
+pokemon_pywal.egg-info/requires.txt
+pokemon_pywal.egg-info/top_level.txt

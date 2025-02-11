@@ -1,0 +1,2 @@
+[console_scripts]
+pokemon-pywal = pokemon_pywal:main

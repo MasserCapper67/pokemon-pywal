@@ -1,0 +1,5 @@
+Metadata-Version: 2.1
+Name: pokemon-pywal
+Version: 0.1
+Requires-Dist: numpy
+Requires-Dist: colormath
