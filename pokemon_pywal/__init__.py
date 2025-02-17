@@ -72,20 +72,43 @@ def find_best_pokemons(pywal_color_5):
 
     return [pokemon[0] for pokemon in best_pokemons]
 
-def save_pokemon_sprite(pokemon_file):
+def save_pokemon_sprite(pokemon_file, target_path):
     sprite_path = os.path.join(POKEMON_SPRITES_DIR, pokemon_file)
     with open(sprite_path, 'r', encoding='utf-8') as f:
         pokemon_sprite = f.read()
-    with open(POKEMON_SPRITE_FILE, 'w', encoding = 'utf-8') as f:
+    with open(target_path, 'w', encoding = 'utf-8') as f:
         f.write(pokemon_sprite)
-    print(f"Pokemon sprite saved to {POKEMON_SPRITE_FILE}")
+    print(f"Pokemon sprite saved to {target_path}")
+
+def change_symlink():
+    pokemon_sprites_dir = os.path.expanduser("~/.cache/wal/")
+
+    pokemon_sprites = [
+        f for f in os.listdir(pokemon_sprites_dir)
+        if f.startswith("pokemon_sprite_")
+    ]
+    if pokemon_sprites:
+        selected_pokemon = random.choice(pokemon_sprites)
+        selected_path = os.path.join(pokemon_sprites_dir, selected_pokemon)
+
+        symlink_path = os.path.expanduser("~/.cache/wal/pokemon_sprite")
+        if os.path.exists(symlink_path) or os.path.islink(symlink_path):
+            os.remove(symlink_path)
+
+            os.symlink(selected_path, symlink_path)
+    else:
+        print("No Pokemon sprites found in cache.")
 
 def main():
     parser = argparse.ArgumentParser(description="Select a Pokémon sprite based on Pywal colors.")
     parser.add_argument('--save-sprite', action='store_true', help='Save the selected Pokémon sprite to a file.')
+    parser.add_argument('--change-symlink', action='store_true', help='Changes symlink to a random saved sprite.')
 
     args = parser.parse_args()
 
+    if args.change_symlink:
+        change_symlink()
+        return
     pywal_color_5 = load_pywal_color_5()
 
     if not os.path.exists(POKEMON_COLORS_CACHE):
@@ -94,13 +117,14 @@ def main():
     best_pokemons = find_best_pokemons(pywal_color_5)
     
     if best_pokemons:
-        chosen_pokemon = random.choice(best_pokemons)
-        print(f"Selected Pokémon: {chosen_pokemon}")
-        
-        if args.save_sprite:
-            save_pokemon_sprite(chosen_pokemon)
+        for i, pokemon_file in enumerate(best_pokemons):
+            print(f"Selected Pokemon {i+1}: {pokemon_file}")
+            if args.save_sprite:
+                target_path = os.path.expanduser(f"~/.cache/wal/pokemon_sprite_{i+1}")
+                save_pokemon_sprite(pokemon_file, target_path)
+                os.system(f"cat {os.path.join(POKEMON_SPRITES_DIR, pokemon_file)}")
+        change_symlink()
 
-        os.system(f"cat {os.path.join(POKEMON_SPRITES_DIR, chosen_pokemon)}")
     else:
         print("No Pokémon found.")
 
