@@ -100,6 +100,13 @@ def main():
                 target_path = os.path.expanduser(f"~/.cache/wal/pokemon_sprite_{i+1}")
                 save_pokemon_sprite(pokemon_file, target_path)
                 os.system(f"cat {os.path.join(POKEMON_SPRITES_DIR, pokemon_file)}")
+        random_sprite = os.path.expanduser(f"~/.cache/wal/pokemon_sprite_{random.randint(1, TOP_N_POKEMONS)}")
+
+        symlink_path = os.path.expanduser("~/.cache/wal/pokemon_sprite")
+        if os.path.exists(symlink_path):
+            os.remove(symlink_path)
+
+            os.symlink(random_sprite, symlink_path)
     else:
         print("No Pokémon found.")
 

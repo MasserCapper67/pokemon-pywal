@@ -80,12 +80,35 @@ def save_pokemon_sprite(pokemon_file, target_path):
         f.write(pokemon_sprite)
     print(f"Pokemon sprite saved to {target_path}")
 
+def change_symlink():
+    pokemon_sprites_dir = os.path.expanduser("~/.cache/wal/")
+
+    pokemon_sprites = [
+        f for f in os.listdir(pokemon_sprites_dir)
+        if f.startswith("pokemon_sprite_")
+    ]
+    if pokemon_sprites:
+        selected_pokemon = random.choice(pokemon_sprites)
+        selected_path = os.path.join(pokemon_sprites_dir, selected_pokemon)
+
+        symlink_path = os.path.expanduser("~/.cache/wal/pokemon_sprite")
+        if os.path.exists(symlink_path) or os.path.islink(symlink_path):
+            os.remove(symlink_path)
+
+            os.symlink(selected_path, symlink_path)
+    else:
+        print("No Pokemon sprites found in cache.")
+
 def main():
     parser = argparse.ArgumentParser(description="Select a Pokémon sprite based on Pywal colors.")
     parser.add_argument('--save-sprite', action='store_true', help='Save the selected Pokémon sprite to a file.')
+    parser.add_argument('--change-symlink', action='store_true', help='Changes symlink to a random saved sprite.')
 
     args = parser.parse_args()
 
+    if args.change_symlink:
+        change_symlink()
+        return
     pywal_color_5 = load_pywal_color_5()
 
     if not os.path.exists(POKEMON_COLORS_CACHE):
@@ -100,13 +123,8 @@ def main():
                 target_path = os.path.expanduser(f"~/.cache/wal/pokemon_sprite_{i+1}")
                 save_pokemon_sprite(pokemon_file, target_path)
                 os.system(f"cat {os.path.join(POKEMON_SPRITES_DIR, pokemon_file)}")
-        random_sprite = os.path.expanduser(f"~/.cache/wal/pokemon_sprite_{random.randint(1, TOP_N_POKEMONS)}")
+        change_symlink()
 
-        symlink_path = os.path.expanduser("~/.cache/wal/pokemon_sprite")
-        if os.path.exists(symlink_path):
-            os.remove(symlink_path)
-
-            os.symlink(random_sprite, symlink_path)
     else:
         print("No Pokémon found.")
 
