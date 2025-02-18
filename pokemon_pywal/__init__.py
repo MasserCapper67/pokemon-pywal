@@ -93,9 +93,15 @@ def change_symlink():
 
         symlink_path = os.path.expanduser("~/.cache/wal/pokemon_sprite")
         if os.path.exists(symlink_path) or os.path.islink(symlink_path):
-            os.remove(symlink_path)
-
+            try:
+                os.unlink(symlink_path)
+            except Exception as e:
+                print(f"Error removing symlink: {e}")
+        try:
             os.symlink(selected_path, symlink_path)
+        except Exception as e:
+            print(f"Error creating symlink: {e}")
+
     else:
         print("No Pokemon sprites found in cache.")
 
