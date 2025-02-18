@@ -20,6 +20,20 @@ def load_pywal_color_5():
         return colors_data['colors'].get('color5')
 
 
+def load_pywal_colors():
+
+    colors = []
+
+    with open(f"{os.getenv('HOME')}/.cache/wal/colors.json", 'r') as f:
+        colors_data = json.load(f)
+
+        colors.append(colors_data['colors'].get('color1'))
+        colors.append(colors_data['colors'].get('color3'))
+        colors.append(colors_data['colors'].get('color5'))
+
+    return colors
+
+
 def extract_colors_from_sprite(sprite_path):
     with open(sprite_path, 'r', encoding='utf-8') as f:
         content = f.read()
