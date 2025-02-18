@@ -75,13 +75,13 @@ def preprocess_pokemon_colors():
     with open(POKEMON_COLORS_CACHE, 'w') as f:
         json.dump(pokemon_colors_cache, f)
 
-def find_best_pokemons(pywal_color_5):
+def find_best_pokemons(pywal_color):
     with open(POKEMON_COLORS_CACHE, 'r') as f:
         pokemon_colors_cache = json.load(f)
 
     best_pokemons = sorted(
         pokemon_colors_cache.items(),
-        key=lambda item: compare_colors(pywal_color_5, item[1])
+        key=lambda item: compare_colors(pywal_color, item[1])
     )[:TOP_N_POKEMONS]
 
     return [pokemon[0] for pokemon in best_pokemons]
@@ -129,13 +129,17 @@ def main():
     if args.change_symlink:
         change_symlink()
         return
-    pywal_color_5 = load_pywal_color_5()
+    colors = load_pywal_colors()
 
     if not os.path.exists(POKEMON_COLORS_CACHE):
         preprocess_pokemon_colors()
 
-    best_pokemons = find_best_pokemons(pywal_color_5)
-    
+    best_pokemons = []
+    for color in colors:
+        best_pokemons.append(find_best_pokemons(color))
+   
+    best_pokemons = sum(best_pokemons, [])
+
     if best_pokemons:
         for i, pokemon_file in enumerate(best_pokemons):
             print(f"Selected Pokemon {i+1}: {pokemon_file}")
