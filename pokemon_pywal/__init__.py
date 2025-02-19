@@ -10,7 +10,7 @@ from colormath.color_diff import delta_e_cie2000
 from colormath.color_conversions import convert_color
 
 POKEMON_SPRITES_DIR = "/opt/pokemon-colorscripts/colorscripts/small/regular"
-TOP_N_POKEMONS = 3
+TOP_N_POKEMONS = 2
 POKEMON_SPRITE_FILE = os.path.expanduser("~/.cache/wal/pokemon_sprite")
 POKEMON_COLORS_CACHE = os.path.expanduser("~/.cache/wal/pokemon_colors_cache.json")
 
@@ -27,7 +27,6 @@ def load_pywal_colors():
     with open(f"{os.getenv('HOME')}/.cache/wal/colors.json", 'r') as f:
         colors_data = json.load(f)
 
-        colors.append(colors_data['colors'].get('color1'))
         colors.append(colors_data['colors'].get('color3'))
         colors.append(colors_data['colors'].get('color5'))
 
