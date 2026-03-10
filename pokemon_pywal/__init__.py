@@ -19,6 +19,10 @@ def load_pywal_color_5():
         colors_data = json.load(f)
         return colors_data['colors'].get('color5')
 
+def patch_asscalar(a):
+    return a.item()
+
+setattr(np, "asscalar", patch_asscalar)
 
 def load_pywal_colors():
 

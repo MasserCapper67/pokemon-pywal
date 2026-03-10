@@ -10,7 +10,7 @@ from colormath.color_diff import delta_e_cie2000
 from colormath.color_conversions import convert_color
 
 POKEMON_SPRITES_DIR = "/opt/pokemon-colorscripts/colorscripts/small/regular"
-TOP_N_POKEMONS = 3
+TOP_N_POKEMONS = 2
 POKEMON_SPRITE_FILE = os.path.expanduser("~/.cache/wal/pokemon_sprite")
 POKEMON_COLORS_CACHE = os.path.expanduser("~/.cache/wal/pokemon_colors_cache.json")
 
@@ -18,6 +18,23 @@ def load_pywal_color_5():
     with open(f"{os.getenv('HOME')}/.cache/wal/colors.json", 'r') as f:
         colors_data = json.load(f)
         return colors_data['colors'].get('color5')
+
+def patch_asscalar(a):
+    return a.item()
+
+setattr(np, "asscalar", patch_asscalar)
+
+def load_pywal_colors():
+
+    colors = []
+
+    with open(f"{os.getenv('HOME')}/.cache/wal/colors.json", 'r') as f:
+        colors_data = json.load(f)
+
+        colors.append(colors_data['colors'].get('color3'))
+        colors.append(colors_data['colors'].get('color5'))
+
+    return colors
 
 
 def extract_colors_from_sprite(sprite_path):
@@ -61,13 +78,13 @@ def preprocess_pokemon_colors():
     with open(POKEMON_COLORS_CACHE, 'w') as f:
         json.dump(pokemon_colors_cache, f)
 
-def find_best_pokemons(pywal_color_5):
+def find_best_pokemons(pywal_color):
     with open(POKEMON_COLORS_CACHE, 'r') as f:
         pokemon_colors_cache = json.load(f)
 
     best_pokemons = sorted(
         pokemon_colors_cache.items(),
-        key=lambda item: compare_colors(pywal_color_5, item[1])
+        key=lambda item: compare_colors(pywal_color, item[1])
     )[:TOP_N_POKEMONS]
 
     return [pokemon[0] for pokemon in best_pokemons]
@@ -93,9 +110,15 @@ def change_symlink():
 
         symlink_path = os.path.expanduser("~/.cache/wal/pokemon_sprite")
         if os.path.exists(symlink_path) or os.path.islink(symlink_path):
-            os.remove(symlink_path)
-
+            try:
+                os.unlink(symlink_path)
+            except Exception as e:
+                print(f"Error removing symlink: {e}")
+        try:
             os.symlink(selected_path, symlink_path)
+        except Exception as e:
+            print(f"Error creating symlink: {e}")
+
     else:
         print("No Pokemon sprites found in cache.")
 
@@ -109,13 +132,17 @@ def main():
     if args.change_symlink:
         change_symlink()
         return
-    pywal_color_5 = load_pywal_color_5()
+    colors = load_pywal_colors()
 
     if not os.path.exists(POKEMON_COLORS_CACHE):
         preprocess_pokemon_colors()
 
-    best_pokemons = find_best_pokemons(pywal_color_5)
-    
+    best_pokemons = []
+    for color in colors:
+        best_pokemons.append(find_best_pokemons(color))
+   
+    best_pokemons = sum(best_pokemons, [])
+
     if best_pokemons:
         for i, pokemon_file in enumerate(best_pokemons):
             print(f"Selected Pokemon {i+1}: {pokemon_file}")
