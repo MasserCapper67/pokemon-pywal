@@ -37,9 +37,10 @@ else
     rm -rf "$DATA_DIR/pokemon_pywal"
     cp -r "$REPO_DIR/pokemon_pywal" "$DATA_DIR/"
     PROGRAM=$BIN_DIR/pokemon-pywal
+    # -S skips loading site-packages, which only stdlib-based code like this can do, to start faster
     cat >"$PROGRAM" <<EOF
 #!/bin/sh
-PYTHONPATH="$DATA_DIR" exec python3 -m pokemon_pywal "\$@"
+PYTHONPATH="$DATA_DIR" exec python3 -S -c 'from pokemon_pywal import main; main()' "\$@"
 EOF
     chmod +x "$PROGRAM"
 fi
@@ -73,8 +74,26 @@ if command -v noctalia >/dev/null 2>&1; then
         info "Removed an invalid hook from $NOCTALIA_CONFIG (backup: $NOCTALIA_CONFIG.bak)"
     fi
 
+    # Number of Pokémon saved per palette; one of them is shown at random
+    COUNT=
+    while :; do
+        ask "How many Pokémon to save for each wallpaper, 1-5 (Enter keeps the current number, 4 by default)? " || break
+        case $REPLY in
+            '') break ;;
+            [1-5]) COUNT=$REPLY; break ;;
+            *) warn "Enter a number from 1 to 5." ;;
+        esac
+    done
+    HOOK_COMMAND="\"$PROGRAM\" --save-sprite${COUNT:+ --count $COUNT}"
+
     if [ -f "$NOCTALIA_CONFIG" ] && grep -q '^\[theme\.templates\.user\.pokemon-pywal\]$' "$NOCTALIA_CONFIG"; then
-        info "Noctalia hook already set up in $NOCTALIA_CONFIG"
+        if [ -n "$COUNT" ]; then
+            sed -i "/^\[theme\.templates\.user\.pokemon-pywal\]$/,/^post_hook = /s|^post_hook = .*|post_hook = '$HOOK_COMMAND'|" \
+                "$NOCTALIA_CONFIG"
+            info "Noctalia hook already set up in $NOCTALIA_CONFIG, now saving $COUNT Pokémon"
+        else
+            info "Noctalia hook already set up in $NOCTALIA_CONFIG"
+        fi
         HOOK=yes
     else
         ask "Add the Noctalia hook to $NOCTALIA_CONFIG so the Pokémon follows your palette? [Y/n] " || REPLY=n
@@ -90,7 +109,7 @@ if command -v noctalia >/dev/null 2>&1; then
 [theme.templates.user.pokemon-pywal]
 input_path = "$DATA_DIR/noctalia-template.json"
 output_path = "$CACHE_DIR/colors.json"
-post_hook = '"$PROGRAM" --save-sprite'
+post_hook = '$HOOK_COMMAND'
 EOF
                 info "Added the hook to $NOCTALIA_CONFIG"
                 HOOK=yes

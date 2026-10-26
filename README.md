@@ -20,7 +20,8 @@ The installer:
 2. Uses your pokemon-colorscripts sprites if installed (e.g. `pokemon-colorscripts-fork-git` from the AUR), otherwise
    downloads them to `~/.local/share/pokemon-pywal/`.
 3. Asks for a fastfetch preset and creates a config with the Pokémon as logo (see below).
-4. If Noctalia is installed, asks to add a hook to `~/.config/noctalia/config.toml`, so the Pokémon change with your
+4. Asks how many Pokémon to save for each wallpaper (1 to 5).
+5. If Noctalia is installed, asks to add a hook to `~/.config/noctalia/config.toml`, so the Pokémon change with your
    palette, and applies it right away.
 
 Run it again at any time to update the program and the downloaded sprites.
@@ -35,7 +36,10 @@ fastfetch -c pokemon
 ```
 
 This writes `~/.config/fastfetch/pokemon.jsonc`, a copy of the preset whose logo is the current Pokémon. Your own
-fastfetch config is not touched. The logo follows the palette automatically, so you only need to do this once.
+fastfetch config is not touched. The logo shows a Pokémon chosen in advance with a plain `cat`, so nothing is computed when a
+terminal opens (fastfetch takes ~3.5 ms instead of ~10 ms). The Pokémon for the next run is then chosen in the
+background from the ones saved for the current palette, never the same one twice in a row. It follows the palette automatically, so you only
+need to do this once. If you created the config with an older version, run `--fastfetch` again.
 
 ## Noctalia hook (manual setup)
 
@@ -45,7 +49,7 @@ The installer does this for you. To do it by hand, add to `~/.config/noctalia/co
 [theme.templates.user.pokemon-pywal]
 input_path = "~/.local/share/pokemon-pywal/noctalia-template.json"  # copy of noctalia/pokemon-pywal.json
 output_path = "~/.cache/pokemon-pywal/colors.json"
-post_hook = "$HOME/.local/bin/pokemon-pywal --save-sprite"
+post_hook = "$HOME/.local/bin/pokemon-pywal --save-sprite --count 4"
 ```
 
 ## Usage
@@ -54,8 +58,20 @@ post_hook = "$HOME/.local/bin/pokemon-pywal --save-sprite"
 pokemon-pywal                  # print the selected Pokémon
 pokemon-pywal --save-sprite    # save the sprites to ~/.cache/pokemon-pywal/pokemon_sprite_N
 pokemon-pywal --change-symlink # point ~/.cache/pokemon-pywal/pokemon_sprite to a random saved sprite
+pokemon-pywal --random-sprite  # the same, and print it
 pokemon-pywal --download-sprites
 ```
+
+`--count N` sets how many Pokémon are saved for each palette, from 1 to 5 (4 by default). They alternate between the
+best matches of the primary and tertiary colors. `pokemon_sprite` points to one of them, and `--change-symlink` or
+`--random-sprite` (which also prints it) switch to another one at random.
+
+Large sprites are skipped so they fit next to fastfetch: by default up to 20 lines tall and 40 columns wide, which
+covers about 90% of them. Change it with `--max-height LINES` and `--max-width COLUMNS`.
+
+Each Pokémon's color is the most common one in its sprite, ignoring the black outline and dark gray shading that almost
+every sprite has. The sprites are analyzed once and cached in `~/.cache/pokemon-pywal/pokemon_cache.marshal`, so a run takes a few
+milliseconds.
 
 The sprites directory is detected automatically. To use a different one pass `--sprites-dir <path>` or set
 `POKEMON_SPRITES_DIR`.
